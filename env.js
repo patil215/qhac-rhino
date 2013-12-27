@@ -1551,6 +1551,7 @@ Envjs.connection = function(xhr, responseHandler, data){
 
         // Add headers to Java connection
         for (header in xhr.headers){
+            console.log('Header ' + header + ': ' + xhr.headers[header]);
             connection.addRequestProperty(header+'', xhr.headers[header]+'');
         }
 

@@ -6,19 +6,19 @@
 var CryptoJS;
 
 /** Iterates through all properties that belong to an object. */
-Object.prototype.eachOwnProperty = function (f) {
-    for (var k in this)
-        if (Object.prototype.hasOwnProperty.call(this, k))
-            f(k, this[k]);
+var eachOwnProperty = function (o, f) {
+    for (var k in o)
+        if (Object.prototype.hasOwnProperty.call(o, k))
+            f(k, o[k]);
 };
 
 /** Map through all properties that belong to an object, returning an array.. */
-Object.prototype.mapOwnProperties = function (f) {
+var mapOwnProperties = function (o, f) {
     var newList = [];
 
-    for (var k in this)
-        if (Object.prototype.hasOwnProperty.call(this, k))
-            newList[newList.length] = f(k, this[k]);
+    for (var k in o)
+        if (Object.prototype.hasOwnProperty.call(o, k))
+            newList[newList.length] = f(k, o[k]);
 
     return newList;
 };
@@ -33,6 +33,21 @@ HTMLElement.prototype.attr = HTMLElement.prototype.getAttribute;
 HTMLElement.prototype.findClass = HTMLElement.prototype.getElementsByClassName;
 
 HTMLElement.prototype.findTag = HTMLElement.prototype.getElementsByTagName;
+
+// use Sizzle if necessary
+if (typeof HTMLElement.prototype.querySelectorAll === 'undefined' && typeof Sizzle !== 'undefined') {
+    var Sizzle;
+
+    HTMLElement.prototype.find = function (sel) {
+        return Sizzle(sel, this);
+    };
+
+    HTMLElement.prototype.findClass = function (cls) {
+        return Sizzle('.' + cls, this);
+    };
+
+    HTMLElement.prototype.findTag = HTMLElement.prototype.find;
+}
 
 NodeList.prototype.splice = function (idx) {
     var newList = [];
@@ -326,11 +341,11 @@ var GradeCalc;
             return c.average;
         }).numerics();
 
-        var cycleTotal, cycleWeight, examGrade, examWeight;
+        var cycleAvg, cycleWeight, examGrade, examWeight;
 
         // calculate the cycle grades
-        var cycleAvg = cycles.average();
-        var cycleWeight = (100 - district.examWeight) * cycles.length / semester.cycles.length;
+        cycleAvg = cycles.average();
+        cycleWeight = (100 - district.examWeight) * cycles.length / semester.cycles.length;
 
         // calculate the exam grade
         if (!semester.examIsExempt) {
@@ -695,8 +710,10 @@ var XHR = (function () {
     }
     /** Calls 'f' with arguments if it is a function, otherwise does nothing. */
     XHR._maybeCall = function (f, _this, args) {
-        if (typeof f === 'function')
+        if (typeof f === 'function') {
+        	console.log('Calling callback: ' + f);
             return f.apply(_this, args);
+        }
     };
 
     /** Encodes a parameter from a key/value pair. */
@@ -734,7 +751,7 @@ var XHR = (function () {
     XHR._createParamsString = function (params) {
         if (typeof params === 'undefined')
             return '';
-        return params.mapOwnProperties(XHR._encodeParameter).join('&');
+        return mapOwnProperties(params, XHR._encodeParameter).join('&');
     };
 
     /** Sends a GET request with the specified parameters. */
@@ -743,6 +760,12 @@ var XHR = (function () {
         var params = XHR._createParamsString(this._params);
         if (params !== '')
             params = '?' + params;
+
+        // log
+        console.log('XHR loading: ' + this._url + ' via GET');
+        console.log('Params: ' + params);
+
+        // send
         this._xhr.open('GET', this._url + params, true);
         this._xhr.onreadystatechange = XHR._stateChangeHandler(this);
         this._xhr.send(null);
@@ -751,10 +774,13 @@ var XHR = (function () {
     /** Sends a POST request with the specified parameters. */
     XHR.prototype._sendPost = function () {
         // open url
-        this._xhr.open('Post', this._url, true);
+        this._xhr.open('POST', this._url, true);
         this._xhr.onreadystatechange = XHR._stateChangeHandler(this);
 
         var paramString = XHR._createParamsString(this._params);
+
+        console.log('XHR loading: ' + this._url + ' via POST');
+        console.log('Params: ' + paramString);
 
         // send the proper header information along with the request
         this._xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
